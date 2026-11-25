@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ticc</title>
+<style>
+:root {
+  --bg: #f7f7f8; --panel: #fff; --text: #1d1d22; --muted: #6b6b76; --line: #e3e3e8;
+  --accent: #3b5bdb; --accent-fg: #fff; --danger: #c92a2a; --warn: #e67700; --ok: #2b8a3e;
+  --agent: #7048e8; --chip: #f0f0f3; --attn: #fff4e6; --attn-line: #ffc078;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141417; --panel: #1c1c21; --text: #e8e8ec; --muted: #9a9aa6; --line: #2e2e36;
+    --accent: #748ffc; --accent-fg: #0b0b0e; --danger: #ff6b6b; --warn: #ffa94d; --ok: #69db7c;
+    --agent: #b197fc; --chip: #26262d; --attn: #2b2113; --attn-line: #8a5a1c;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 17px; margin: 0 8px 0 0; letter-spacing: .5px; }
+nav { display: flex; gap: 4px; }
+nav button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; color: var(--muted); cursor: pointer; font: inherit; }
+nav button.on { background: var(--chip); color: var(--text); font-weight: 600; }
+.badge { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 12px; text-align: center; margin-left: 4px; }
+.spacer { flex: 1; }
+.me { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+input, select, textarea { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+textarea { width: 100%; min-height: 70px; resize: vertical; }
+button.btn { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button.btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+button.btn.danger { color: var(--danger); border-color: var(--danger); }
+main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+main.single { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border-bottom: 1px solid var(--line); }
+.filters input[type=search] { flex: 1; min-width: 140px; }
+.row { padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; }
+.row:last-child { border-bottom: 0; }
+.row:hover, .row.sel { background: var(--chip); }
+.row .id { color: var(--muted); font-variant-numeric: tabular-nums; }
+.row .title { font-weight: 500; overflow-wrap: anywhere; }
+.row .meta { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 6px; color: var(--muted); font-size: 12px; }
+.chip { display: inline-block; padding: 1px 7px; border-radius: 10px; background: var(--chip); font-size: 12px; white-space: nowrap; }
+.s-open { color: var(--accent); } .s-in_progress { color: var(--warn); } .s-blocked { color: #fff; background: var(--danger); }
+.s-in_review { color: var(--agent); } .s-done { color: var(--ok); } .s-closed { color: var(--muted); }
+.p-critical { color: #fff; background: var(--danger); } .p-high { color: var(--danger); } .p-low { color: var(--muted); }
+.k-bug { color: var(--danger); } .k-feature { color: var(--accent); }
+.agent { color: var(--agent); }
+.empty { padding: 30px; text-align: center; color: var(--muted); }
+.detail { padding: 16px; }
+.detail h2 { margin: 0 0 6px; font-size: 19px; overflow-wrap: anywhere; }
+.detail .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.progress { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.progress > div { height: 100%; background: var(--accent); }
+.req { border: 1px solid var(--attn-line); background: var(--attn); border-radius: 10px; padding: 12px; margin: 10px 0; }
+.req.resolved { background: var(--panel); border-color: var(--line); }
+.req h4 { margin: 0 0 6px; font-size: 13px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.req .q { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 10px; }
+.req .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.req .opts { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.timeline { list-style: none; padding: 0; margin: 16px 0 0; border-left: 2px solid var(--line); }
+.timeline li { padding: 4px 0 10px 14px; position: relative; }
+.timeline li::before { content: ""; position: absolute; left: -6px; top: 9px; width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.timeline li.progress-ev::before { background: var(--accent); }
+.timeline li.request-ev::before { background: var(--danger); }
+.timeline li.response-ev::before { background: var(--ok); }
+.timeline .who { font-weight: 600; }
+.timeline .when { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.timeline .txt { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 2px; }
+.muted { color: var(--muted); }
+dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); width: min(560px, calc(100vw - 32px)); padding: 18px; }
+dialog::backdrop { background: rgba(0,0,0,.35); }
+dialog form > * { display: block; width: 100%; margin-bottom: 10px; }
+dialog .line { display: flex; gap: 8px; } dialog .line > * { flex: 1; }
+.err { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--danger); color: #fff; padding: 8px 14px; border-radius: 8px; display: none; max-width: calc(100vw - 32px); z-index: 10; }
+.feed .row { cursor: default; grid-template-columns: 1fr; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ticc</h1>
+  <nav>
+    <button data-view="inbox">Needs you<span id="inbox-count"></span></button>
+    <button data-view="issues">Issues</button>
+    <button data-view="activity">Activity</button>
+  </nav>
+  <span class="spacer"></span>
+  <span class="me">you are <input id="me" size="12" placeholder="your name" aria-label="your name"></span>
+  <button class="btn primary" id="new-btn">New issue</button>
+</header>
+<main id="main"></main>
+<div class="err" id="err"></div>
+
+<dialog id="new-dlg">
+  <form method="dialog" id="new-form">
+    <h3 style="margin-top:0">File an issue</h3>
+    <div class="line">
+      <select name="kind" aria-label="kind"><option value="bug">Bug</option><option value="feature">Feature request</option><option value="task">Task</option></select>
+      <select name="priority" aria-label="priority"><option>critical</option><option>high</option><option selected>medium</option><option>low</option></select>
+    </div>
+    <input name="title" placeholder="Title" required>
+    <textarea name="body" placeholder="Details: steps to reproduce, expected vs actual, motivation…" rows="6"></textarea>
+    <input name="labels" placeholder="labels, comma separated">
+    <input name="assignee" placeholder="assignee (optional)">
+    <div class="line"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">File it</button></div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+const route = () => { const [v, id] = location.hash.replace(/^#\/?/, "").split("/"); return { view: v || "inbox", sel: Number(id) || null }; };
+const state = {
+  ...route(),
+  filters: { status: "", kind: "", q: "", assignee: "" },
+  meta: null,
+};
+const STATUSES = ["open", "in_progress", "blocked", "in_review", "done", "closed"];
+
+function me() { return $("#me").value.trim() || "web"; }
+
+async function api(method, path, body) {
+  const headers = { "Content-Type": "application/json", "X-Ticc-Actor": me(), "X-Ticc-Actor-Kind": "human" };
+  const tok = store.get("ticc-token", "");
+  if (tok) headers.Authorization = "Bearer " + tok;
+  const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (res.status === 401) {
+    const t = prompt("This tracker requires an access token:");
+    if (t) { store.set("ticc-token", t); return api(method, path, body); }
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function toast(msg) {
+  const el = $("#err"); el.textContent = msg; el.style.display = "block";
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = "none", 4000);
+}
+async function act(fn) { try { await fn(); await render(); } catch (e) { toast(e.message); } }
+
+function ago(ts) {
+  const s = (Date.now() - Date.parse(ts)) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
+}
+const who = (n, k) => n ? `<span class="${k === "agent" ? "agent" : ""}">${esc(n)}${k === "agent" ? " 🤖" : ""}</span>` : `<span class="muted">unassigned</span>`;
+const chip = (cls, txt) => `<span class="chip ${cls}">${esc(txt)}</span>`;
+
+function setHash() {
+  location.hash = "/" + state.view + (state.sel ? "/" + state.sel : "");
+}
+
+// ---------------------------------------------------------------- requests
+function requestCard(r, withIssue) {
+  const pending = r.status === "pending";
+  const issueLink = withIssue ? ` on <a href="#/issues/${r.issue_id}">#${r.issue_id} ${esc(r.issue_title)}</a>` : "";
+  let acts = "";
+  if (pending) {
+    if (r.kind === "approval") {
+      acts = `<textarea data-f="note" placeholder="Optional note to the requester"></textarea>
+        <div class="acts"><button class="btn ok" data-do="approve">Approve</button>
+        <button class="btn danger" data-do="reject">Reject</button>
+        <button class="btn" data-do="cancel">Withdraw</button></div>`;
+    } else if (r.kind === "decision") {
+      acts = `<div class="opts">${r.options.map((o, i) => `<label><input type="radio" name="opt-${r.id}" value="${esc(o)}" ${i === 0 ? "checked" : ""}> ${esc(o)}</label>`).join("")}</div>
+        <textarea data-f="note" placeholder="Optional explanation"></textarea>
+        <div class="acts"><button class="btn primary" data-do="decide">Decide</button><button class="btn" data-do="cancel">Withdraw</button></div>`;
+    } else {
+      acts = `<textarea data-f="note" placeholder="Your answer"></textarea>
+        <div class="acts"><button class="btn primary" data-do="answer">Answer</button><button class="btn" data-do="cancel">Withdraw</button></div>`;
+    }
+  } else {
+    acts = `<div class="muted">${esc(r.status)} by ${who(r.responded_by, r.responded_by_kind)} ${r.resolved_at ? ago(r.resolved_at) : ""}</div>
+      ${r.response ? `<div class="q">${esc(r.response)}</div>` : ""}`;
+  }
+  return `<div class="req ${pending ? "" : "resolved"}" data-req="${r.id}">
+    <h4>${chip(r.kind === "approval" ? "p-high" : "", r.kind)} R${r.id}${issueLink}
+      <span class="muted">· ${who(r.requested_by, r.requested_by_kind)} · ${ago(r.created_at)}${r.blocking ? "" : " · non-blocking"}</span></h4>
+    <div class="q">${esc(r.question)}</div>${acts}</div>`;
+}
+
+function wireRequests(root) {
+  root.querySelectorAll("[data-req]").forEach(card => {
+    const id = card.dataset.req;
+    card.querySelectorAll("[data-do]").forEach(b => b.onclick = () => act(async () => {
+      const note = (card.querySelector("[data-f=note]")?.value || "").trim();
+      const what = b.dataset.do;
+      if (what === "cancel") return api("POST", `/api/requests/${id}/cancel`, { reason: note });
+      if (what === "answer" && !note) throw new Error("Write an answer first");
+      if (what === "decide") {
+        const choice = card.querySelector("input[type=radio]:checked")?.value;
+        return api("POST", `/api/requests/${id}/respond`, { decision: choice, response: note });
+      }
+      return api("POST", `/api/requests/${id}/respond`, { decision: what === "answer" ? null : what, response: note });
+    }));
+  });
+}
+
+async function renderInbox(main) {
+  const reqs = await api("GET", "/api/requests?status=pending");
+  main.className = "single";
+  main.innerHTML = `<div>
+    <h2 style="margin:0 0 4px">Needs you</h2>
+    <p class="muted" style="margin-top:0">Agents and teammates waiting on a human: help, approvals and decisions.</p>
+    ${reqs.length ? reqs.map(r => requestCard(r, true)).join("") : `<div class="panel empty">Nothing is waiting on you. 🎉</div>`}
+  </div>`;
+  wireRequests(main);
+}
+
+// ---------------------------------------------------------------- issues
+async function renderIssues(main) {
+  const f = state.filters;
+  const qs = new URLSearchParams();
+  if (f.status === "all") qs.set("all", "1"); else if (f.status) qs.set("status", f.status);
+  for (const k of ["kind", "q", "assignee"]) if (f[k]) qs.set(k, f[k]);
+  const issues = await api("GET", "/api/issues?" + qs);
+  main.className = "";
+  const list = issues.map(i => `<div class="row ${i.id === state.sel ? "sel" : ""}" data-id="${i.id}">
+      <span class="id">#${i.id}</span><span class="title">${esc(i.title)}</span>
+      <span>${i.pending_requests ? `<span class="badge" title="waiting on humans">${i.pending_requests}</span>` : ""}</span>
+      <span class="meta">${chip("k-" + i.kind, i.kind)}${chip("s-" + i.status, i.status.replace("_", " "))}${i.priority !== "medium" ? chip("p-" + i.priority, i.priority) : ""}
+        ${i.progress != null && !["done","closed"].includes(i.status) ? chip("", i.progress + "%") : ""}
+        ${i.labels.map(l => chip("", l)).join("")}<span>${who(i.assignee, i.assignee_kind)}</span><span>${ago(i.updated_at)}</span></span>
+    </div>`).join("");
+  const opt = (v, cur, label) => `<option value="${v}" ${v === cur ? "selected" : ""}>${label || v || "any"}</option>`;
+  const focused = document.activeElement?.id;
+  main.innerHTML = `<section class="panel">
+      <div class="filters">
+        <input type="search" id="f-q" placeholder="Search…" value="${esc(f.q)}">
+        <select id="f-status" aria-label="status">${opt("", f.status, "active")}${opt("all", f.status, "everything")}${STATUSES.map(s => opt(s, f.status)).join("")}</select>
+        <select id="f-kind" aria-label="kind">${opt("", f.kind, "all kinds")}${["bug","feature","task"].map(k => opt(k, f.kind)).join("")}</select>
+        <select id="f-assignee" aria-label="assignee">${opt("", f.assignee, "anyone")}${opt(me(), f.assignee, "me")}${opt("none", f.assignee, "unassigned")}</select>
+      </div>
+      <div id="list">${list || `<div class="empty">No issues match.</div>`}</div>
+    </section>
+    <section class="panel" id="detail">${state.sel ? "" : `<div class="empty">Select an issue</div>`}</section>`;
+  const q = $("#f-q");
+  if (focused === "f-q") { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+  q.oninput = () => { f.q = q.value; clearTimeout(q.t); q.t = setTimeout(render, 250); };
+  for (const k of ["status", "kind", "assignee"]) $("#f-" + k).onchange = e => { f[k] = e.target.value; render(); };
+  main.querySelectorAll(".row").forEach(r => r.onclick = () => { state.sel = Number(r.dataset.id); setHash(); });
+  if (state.sel) await renderDetail($("#detail"));
+}
+
+function eventLine(e) {
+  const d = e.data || {};
+  let what;
+  switch (e.type) {
+    case "created": what = "filed this issue"; break;
+    case "status": what = `moved ${esc(d.from)} → <b>${esc(d.to)}</b>`; break;
+    case "assign": what = d.to ? `assigned ${who(d.to, d.to_kind)}` : "unassigned"; break;
+    case "edit": what = "edited " + Object.keys(d).map(esc).join(", "); break;
+    case "progress": what = "reported progress" + (d.percent != null ? ` <b>${d.percent}%</b>` : ""); break;
+    case "request": what = `asked for <b>${esc(d.kind)}</b> (R${d.request_id})`; break;
+    case "response": what = `R${d.request_id} <b>${esc(d.outcome)}</b>`; break;
+    default: what = "commented";
+  }
+  const showBody = e.body && !["edit", "request"].includes(e.type);
+  return `<li class="${e.type}-ev"><span class="who">${who(e.actor, e.actor_kind)}</span> ${what}<span class="when" title="${esc(e.created_at)}">${ago(e.created_at)}</span>
+    ${showBody ? `<div class="txt">${esc(e.body)}</div>` : ""}</li>`;
+}
+
+async function renderDetail(el) {
+  let i;
+  try { i = await api("GET", `/api/issues/${state.sel}`); }
+  catch (e) { el.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  const pending = i.requests.filter(r => r.status === "pending");
+  const resolved = i.requests.filter(r => r.status !== "pending");
+  el.innerHTML = `<div class="detail">
+    <h2>#${i.id} ${esc(i.title)}</h2>
+    <div class="chips">${chip("k-" + i.kind, i.kind)}${chip("s-" + i.status, i.status.replace("_", " "))}${chip("p-" + i.priority, i.priority)}
+      ${i.labels.map(l => chip("", l)).join("")}${i.resolution ? chip("", "resolution: " + i.resolution) : ""}
+      <span class="muted">by ${who(i.reporter, i.reporter_kind)} · ${ago(i.created_at)} · assignee ${who(i.assignee, i.assignee_kind)}</span></div>
+    ${i.progress != null ? `<div class="progress" title="${i.progress}%"><div style="width:${i.progress}%"></div></div>` : ""}
+    ${i.body ? `<div class="body">${esc(i.body)}</div>` : ""}
+    ${pending.map(r => requestCard(r, false)).join("")}
+    <div class="controls">
+      <select id="d-status" aria-label="status">${STATUSES.map(s => `<option ${s === i.status ? "selected" : ""}>${s}</option>`).join("")}</select>
+      <select id="d-priority" aria-label="priority">${["critical","high","medium","low"].map(p => `<option ${p === i.priority ? "selected" : ""}>${p}</option>`).join("")}</select>
+      ${i.assignee === me() ? `<button class="btn" id="d-release">Unassign me</button>` : `<button class="btn" id="d-claim">Assign to me</button>`}
+      <button class="btn" id="d-labels">Labels…</button>
+    </div>
+    <textarea id="d-comment" placeholder="Comment, or give guidance to the agent working on this…"></textarea>
+    <div class="controls"><button class="btn primary" id="d-send">Comment</button></div>
+    <ul class="timeline">${i.events.map(eventLine).join("")}</ul>
+    ${resolved.length ? `<h4 class="muted">Resolved requests</h4>${resolved.map(r => requestCard(r, false)).join("")}` : ""}
+  </div>`;
+  wireRequests(el);
+  const id = i.id;
+  $("#d-status", el).onchange = e => act(() => api("PATCH", `/api/issues/${id}`, { status: e.target.value }));
+  $("#d-priority", el).onchange = e => act(() => api("PATCH", `/api/issues/${id}`, { priority: e.target.value }));
+  const claim = $("#d-claim", el), release = $("#d-release", el);
+  if (claim) claim.onclick = () => act(() => api("PATCH", `/api/issues/${id}`, { assignee: me(), assignee_kind: "human" }));
+  if (release) release.onclick = () => act(() => api("PATCH", `/api/issues/${id}`, { assignee: null }));
+  $("#d-labels", el).onclick = () => {
+    const v = prompt("Labels (comma separated)", i.labels.join(", "));
+    if (v !== null) act(() => api("PATCH", `/api/issues/${id}`, { labels: v.split(",") }));
+  };
+  $("#d-send", el).onclick = () => {
+    const body = $("#d-comment", el).value.trim();
+    if (body) act(() => api("POST", `/api/issues/${id}/comments`, { body }));
+  };
+}
+
+// ---------------------------------------------------------------- activity
+async function renderActivity(main) {
+  const evs = await api("GET", "/api/events?limit=100");
+  main.className = "single";
+  main.innerHTML = `<section class="panel feed">${evs.length ? evs.map(e => `<div class="row">
+      <div><a href="#/issues/${e.issue_id}">#${e.issue_id} ${esc(e.issue_title)}</a></div>
+      <ul class="timeline" style="margin:4px 0 0;border:0">${eventLine(e)}</ul></div>`).join("") : `<div class="empty">No activity yet.</div>`}</section>`;
+}
+
+// ---------------------------------------------------------------- shell
+let rendering = false;
+async function render() {
+  if (rendering) return;
+  rendering = true;
+  try {
+    document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.view === state.view));
+    const stats = await api("GET", "/api/stats");
+    $("#inbox-count").innerHTML = stats.pending_requests ? `<span class="badge">${stats.pending_requests}</span>` : "";
+    document.title = (stats.pending_requests ? `(${stats.pending_requests}) ` : "") + "ticc";
+    const main = $("#main");
+    if (state.view === "issues") await renderIssues(main);
+    else if (state.view === "activity") await renderActivity(main);
+    else await renderInbox(main);
+  } catch (e) { toast(e.message); }
+  finally { rendering = false; }
+}
+
+function isBusy() {
+  const a = document.activeElement;
+  if (a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && a.type !== "radio") || a.tagName === "SELECT")) return true;
+  return [...document.querySelectorAll("textarea")].some(t => t.value.trim()) || $("#new-dlg").open;
+}
+
+window.addEventListener("hashchange", () => {
+  const prev = state.sel;
+  Object.assign(state, route());
+  render().then(() => { if (state.sel && state.sel !== prev && innerWidth <= 860) $("#detail")?.scrollIntoView({ behavior: "smooth" }); });
+});
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => { state.view = b.dataset.view; if (state.view !== "issues") state.sel = null; setHash(); });
+$("#me").value = store.get("ticc-me", "");
+$("#me").onchange = () => { store.set("ticc-me", me()); render(); };
+$("#new-btn").onclick = () => { $("#new-form").reset(); $("#new-dlg").showModal(); };
+$("#new-dlg").addEventListener("close", () => {
+  if ($("#new-dlg").returnValue !== "ok") return;
+  const fd = Object.fromEntries(new FormData($("#new-form")));
+  act(async () => {
+    const issue = await api("POST", "/api/issues", {
+      ...fd, labels: fd.labels ? fd.labels.split(",") : [], assignee: fd.assignee || null,
+    });
+    state.view = "issues"; state.sel = issue.id; setHash();
+  });
+});
+render();
+setInterval(() => { if (!isBusy() && !document.hidden) render(); }, 5000);
+</script>
+</body>
+</html>

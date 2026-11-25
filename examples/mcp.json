@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ticc": {
+      "command": "python3",
+      "args": ["-m", "ticc", "mcp"],
+      "env": {
+        "TICC_ACTOR": "claude-1",
+        "TICC_URL": "http://127.0.0.1:8765"
+      }
+    }
+  }
+}

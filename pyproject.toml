@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ticc"
+version = "0.1.0"
+description = "Issue tracking for humans and agents: file bugs and features, report progress, and request human help or approval."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+ticc = "ticc.cli:main"
+
+[tool.setuptools]
+packages = ["ticc"]
+
+[tool.setuptools.package-data]
+ticc = ["web/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
