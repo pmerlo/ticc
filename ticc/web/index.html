@@ -34,10 +34,10 @@ try { const t = localStorage.getItem("ticc-theme"); if (t === "light" || t === "
 body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
 header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
 header h1 { font-size: 17px; margin: 0 8px 0 0; letter-spacing: .5px; }
-.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; padding: 2px; gap: 2px; }
-.theme button { font: inherit; font-size: 12px; background: none; border: 0; border-radius: 5px; padding: 3px 8px; color: var(--muted); cursor: pointer; }
+.theme { display: inline-flex; margin-left: auto; /* stays right-aligned when the header wraps */ border: 1px solid var(--line); border-radius: 7px; padding: 2px; gap: 2px; }
+.theme button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 5px; padding: 5px 7px; color: var(--muted); cursor: pointer; }
 .theme button:hover { color: var(--text); }
-.theme button[aria-checked="true"] { background: var(--chip); color: var(--text); font-weight: 600; }
+.theme button[aria-checked="true"] { background: var(--chip); color: var(--text); }
 .theme button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 nav { display: flex; gap: 4px; }
 nav button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; color: var(--muted); cursor: pointer; font: inherit; }
@@ -103,11 +103,6 @@ dialog .line { display: flex; gap: 8px; } dialog .line > * { flex: 1; }
 </head>
 <body>
 <header>
-  <div class="theme" role="radiogroup" aria-label="Color theme">
-    <button type="button" role="radio" data-theme-opt="system" title="Follow system setting">System</button>
-    <button type="button" role="radio" data-theme-opt="light" title="Light theme">Light</button>
-    <button type="button" role="radio" data-theme-opt="dark" title="Dark theme">Dark</button>
-  </div>
   <h1>ticc</h1>
   <nav>
     <button data-view="inbox">Needs you<span id="inbox-count"></span></button>
@@ -117,6 +112,11 @@ dialog .line { display: flex; gap: 8px; } dialog .line > * { flex: 1; }
   <span class="spacer"></span>
   <span class="me">you are <input id="me" size="12" placeholder="your name" aria-label="your name"></span>
   <button class="btn primary" id="new-btn">New issue</button>
+  <div class="theme" role="radiogroup" aria-label="Color theme">
+    <button type="button" role="radio" data-theme-opt="system" title="System theme" aria-label="System theme"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+    <button type="button" role="radio" data-theme-opt="light" title="Light theme" aria-label="Light theme"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
+    <button type="button" role="radio" data-theme-opt="dark" title="Dark theme" aria-label="Dark theme"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+  </div>
 </header>
 <main id="main"></main>
 <div class="err" id="err"></div>
