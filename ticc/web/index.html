@@ -4,23 +4,41 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ticc</title>
+<script>
+// Apply the saved theme before first paint to avoid a flash of the wrong one.
+try { const t = localStorage.getItem("ticc-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
 <style>
 :root {
   --bg: #f7f7f8; --panel: #fff; --text: #1d1d22; --muted: #6b6b76; --line: #e3e3e8;
   --accent: #3b5bdb; --accent-fg: #fff; --danger: #c92a2a; --warn: #e67700; --ok: #2b8a3e;
   --agent: #7048e8; --chip: #f0f0f3; --attn: #fff4e6; --attn-line: #ffc078;
 }
+/* Theme: follows the OS unless the user picks light or dark (data-theme on <html>). */
+:root { color-scheme: light; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #141417; --panel: #1c1c21; --text: #e8e8ec; --muted: #9a9aa6; --line: #2e2e36;
     --accent: #748ffc; --accent-fg: #0b0b0e; --danger: #ff6b6b; --warn: #ffa94d; --ok: #69db7c;
     --agent: #b197fc; --chip: #26262d; --attn: #2b2113; --attn-line: #8a5a1c;
   }
 }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #141417; --panel: #1c1c21; --text: #e8e8ec; --muted: #9a9aa6; --line: #2e2e36;
+  --accent: #748ffc; --accent-fg: #0b0b0e; --danger: #ff6b6b; --warn: #ffa94d; --ok: #69db7c;
+  --agent: #b197fc; --chip: #26262d; --attn: #2b2113; --attn-line: #8a5a1c;
+}
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
 header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
 header h1 { font-size: 17px; margin: 0 8px 0 0; letter-spacing: .5px; }
+.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; padding: 2px; gap: 2px; }
+.theme button { font: inherit; font-size: 12px; background: none; border: 0; border-radius: 5px; padding: 3px 8px; color: var(--muted); cursor: pointer; }
+.theme button:hover { color: var(--text); }
+.theme button[aria-checked="true"] { background: var(--chip); color: var(--text); font-weight: 600; }
+.theme button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 nav { display: flex; gap: 4px; }
 nav button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; color: var(--muted); cursor: pointer; font: inherit; }
 nav button.on { background: var(--chip); color: var(--text); font-weight: 600; }
@@ -85,6 +103,11 @@ dialog .line { display: flex; gap: 8px; } dialog .line > * { flex: 1; }
 </head>
 <body>
 <header>
+  <div class="theme" role="radiogroup" aria-label="Color theme">
+    <button type="button" role="radio" data-theme-opt="system" title="Follow system setting">System</button>
+    <button type="button" role="radio" data-theme-opt="light" title="Light theme">Light</button>
+    <button type="button" role="radio" data-theme-opt="dark" title="Dark theme">Dark</button>
+  </div>
   <h1>ticc</h1>
   <nav>
     <button data-view="inbox">Needs you<span id="inbox-count"></span></button>
@@ -356,6 +379,27 @@ window.addEventListener("hashchange", () => {
   render().then(() => { if (state.sel && state.sel !== prev && innerWidth <= 860) $("#detail")?.scrollIntoView({ behavior: "smooth" }); });
 });
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => { state.view = b.dataset.view; if (state.view !== "issues") state.sel = null; setHash(); });
+function setTheme(t) {
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  else { t = "system"; delete document.documentElement.dataset.theme; }
+  store.set("ticc-theme", t);
+  document.querySelectorAll("[data-theme-opt]").forEach(b => {
+    const on = b.dataset.themeOpt === t;
+    b.setAttribute("aria-checked", on); b.tabIndex = on ? 0 : -1;
+  });
+}
+const themeBtns = [...document.querySelectorAll("[data-theme-opt]")];
+themeBtns.forEach((b, i) => {
+  b.onclick = () => setTheme(b.dataset.themeOpt);
+  b.onkeydown = e => {  // arrow keys move between options, as in a native radio group
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const next = themeBtns[(i + d + themeBtns.length) % themeBtns.length];
+    setTheme(next.dataset.themeOpt); next.focus();
+  };
+});
+setTheme(store.get("ticc-theme", "system"));
 $("#me").value = store.get("ticc-me", "");
 $("#me").onchange = () => { store.set("ticc-me", me()); render(); };
 $("#new-btn").onclick = () => { $("#new-form").reset(); $("#new-dlg").showModal(); };
