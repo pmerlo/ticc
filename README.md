@@ -147,7 +147,7 @@ For Claude Code, add to `.mcp.json` (see [`examples/mcp.json`](examples/mcp.json
   the tab title shows the count. The **Issues** tab has filters, the full
   timeline, status/priority/assignee controls, and a comment box for steering
   agents. **Activity** is a live feed across all issues.
-  The switch at the top left sets the theme to System, Light or Dark (saved
+  The icons at the top right set the theme to System, Light or Dark (saved
   per browser).
 - **CLI**:
 
