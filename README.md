@@ -173,6 +173,26 @@ Without `TICC_URL`, commands use a local database: `TICC_DB`, or the nearest
 `.ticc/ticc.db` found by walking up from the current directory (like git).
 SQLite runs in WAL mode, so several local processes can share a file safely.
 
+`ticc serve` also reads `TICC_HOST` and `PORT` for its bind address and port,
+and answers `GET /healthz` without a token so hosting platforms can check it.
+
+### Deploying on Railway
+
+The repo includes a `railway.json` that starts the server and health-checks
+`/healthz`. In the Railway dashboard, for the service:
+
+1. **Attach a volume** (any mount path, e.g. `/data`). The container's own
+   disk is wiped on every deploy. ticc puts its database on the volume
+   automatically through `RAILWAY_VOLUME_MOUNT_PATH`. Without one, the server
+   logs a warning and your issues are lost on the next deploy.
+2. **Set `TICC_TOKEN`** to a long random value under Variables. The server
+   warns at startup if it's public without one.
+3. **Generate a domain** under Networking. Then point clients at it with
+   `TICC_URL=https://<your-app>.up.railway.app` and the same `TICC_TOKEN`.
+
+Run a single replica: the SQLite file on the volume can't be shared between
+instances.
+
 ## HTTP API
 
 All endpoints take/return JSON. Identify with `X-Ticc-Actor` and
@@ -197,6 +217,7 @@ token is configured.
 | POST   | `/api/requests/{id}/cancel`        | `reason?`                                             |
 | GET    | `/api/events`                      | `?after=ID&limit=` global activity feed               |
 | GET    | `/api/stats`                       | counts by status/kind, pending requests               |
+| GET    | `/healthz`                         | `{"ok": true}`, no token needed                       |
 
 Errors are `{"error": "..."}` with 400 (invalid), 401 (token), 403 (not
 allowed, e.g. an agent approving), 404, or 409 (conflict, e.g. already claimed).

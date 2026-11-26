@@ -303,8 +303,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", help="summary counts")
 
     s = sub.add_parser("serve", help="run the web UI and HTTP API")
-    s.add_argument("--host", default="127.0.0.1")
-    s.add_argument("--port", type=int, default=8765)
+    s.add_argument("--host", default=os.environ.get("TICC_HOST", "127.0.0.1"),
+                   help="address to bind (env TICC_HOST, default 127.0.0.1)")
+    s.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8765),
+                   help="port to listen on (env PORT, default 8765)")
 
     sub.add_parser("mcp", help="run an MCP server on stdio for AI agents")
     return p

@@ -362,3 +362,57 @@ def test_mcp_stdio_process(tmp_path):
     assert [m["id"] for m in lines] == [1, 2]
     assert lines[0]["result"]["protocolVersion"] == "2024-11-05"
     assert json.loads(lines[1]["result"]["content"][0]["text"])["reporter_kind"] == "agent"
+
+
+# ------------------------------------------------------------- deployment
+
+
+def test_healthz_skips_token(tmp_path):
+    import urllib.error
+    import urllib.request
+
+    s = Store(tmp_path / "h.db")
+    httpd = make_server(s, port=0, token="sekrit")
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        assert json.loads(urllib.request.urlopen(base + "/healthz").read()) == {"ok": True}
+        with pytest.raises(urllib.error.HTTPError):
+            urllib.request.urlopen(base + "/api/stats")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        s.close()
+
+
+def test_serve_reads_port_and_host_from_env(monkeypatch):
+    monkeypatch.setenv("PORT", "4321")
+    monkeypatch.setenv("TICC_HOST", "0.0.0.0")
+    args = cli.build_parser().parse_args(["serve"])
+    assert (args.host, args.port) == ("0.0.0.0", 4321)
+    monkeypatch.delenv("PORT")
+    monkeypatch.delenv("TICC_HOST")
+    args = cli.build_parser().parse_args(["serve"])
+    assert (args.host, args.port) == ("127.0.0.1", 8765)
+
+
+def test_db_defaults_to_railway_volume(monkeypatch, tmp_path):
+    from ticc.store import default_db_path
+
+    monkeypatch.delenv("TICC_DB", raising=False)
+    monkeypatch.setenv("RAILWAY_VOLUME_MOUNT_PATH", str(tmp_path))
+    assert default_db_path() == tmp_path / "ticc.db"
+    monkeypatch.setenv("TICC_DB", "/elsewhere/x.db")  # explicit setting wins
+    assert str(default_db_path()) == "/elsewhere/x.db"
+
+
+def test_startup_warnings():
+    from ticc.server import startup_warnings
+
+    assert startup_warnings("127.0.0.1", None, "db", {}) == []
+    assert "TICC_TOKEN" in startup_warnings("0.0.0.0", None, "db", {})[0]
+    assert startup_warnings("0.0.0.0", "t", "db", {}) == []
+    on_railway = {"RAILWAY_ENVIRONMENT": "production"}
+    assert "volume" in startup_warnings("0.0.0.0", "t", "db", on_railway)[0]
+    with_volume = {**on_railway, "RAILWAY_VOLUME_MOUNT_PATH": "/data"}
+    assert startup_warnings("0.0.0.0", "t", "db", with_volume) == []
