@@ -11,6 +11,7 @@ import hmac
 import json
 import os
 import re
+import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
@@ -213,6 +214,10 @@ def make_handler(api: Api, token: str | None) -> type[BaseHTTPRequestHandler]:
             if method == "GET" and url.path in ("/", "/index.html"):
                 self._send(200, index_html, "text/html; charset=utf-8")
                 return
+            if method == "GET" and url.path == "/healthz":
+                # Unauthenticated liveness probe for hosting platforms.
+                self._send(200, {"ok": True})
+                return
             if not url.path.startswith("/api/"):
                 self._send(404, {"error": "not found"})
                 return
@@ -265,7 +270,27 @@ def make_server(store: Store, host: str = "127.0.0.1", port: int = 8765, token: 
     return httpd
 
 
+def startup_warnings(host: str, token: str | None, db_path: Any, env: dict[str, str]) -> list[str]:
+    """Problems worth flagging when the server starts, e.g. on a hosting platform."""
+    warnings = []
+    if host not in ("127.0.0.1", "localhost", "::1") and not token:
+        warnings.append(
+            f"listening on {host} without TICC_TOKEN: anyone who can reach this server "
+            "can read and change every issue. Set TICC_TOKEN."
+        )
+    on_railway = any(k.startswith("RAILWAY_") for k in env)
+    if on_railway and not env.get("RAILWAY_VOLUME_MOUNT_PATH") and not env.get("TICC_DB"):
+        warnings.append(
+            f"no Railway volume attached: {db_path} is lost on every redeploy. "
+            "Attach a volume to this service (ticc stores its database there automatically)."
+        )
+    return warnings
+
+
 def serve(store: Store, host: str = "127.0.0.1", port: int = 8765, token: str | None = None) -> None:
+    token = token if token is not None else os.environ.get("TICC_TOKEN") or None
+    for warning in startup_warnings(host, token, store.path, dict(os.environ)):
+        print(f"ticc: warning: {warning}", file=sys.stderr, flush=True)
     httpd = make_server(store, host, port, token)
     print(f"ticc serving {store.path} on http://{host}:{httpd.server_address[1]}/", flush=True)
     try:

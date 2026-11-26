@@ -97,6 +97,11 @@ def default_db_path() -> Path:
     env = os.environ.get("TICC_DB")
     if env:
         return Path(env)
+    # On Railway, a volume attached to the service is the only storage that
+    # survives redeploys; Railway exposes its mount point in this variable.
+    volume = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+    if volume:
+        return Path(volume) / "ticc.db"
     # Walk up from cwd looking for an existing .ticc directory (like git).
     cwd = Path.cwd()
     for d in (cwd, *cwd.parents):
